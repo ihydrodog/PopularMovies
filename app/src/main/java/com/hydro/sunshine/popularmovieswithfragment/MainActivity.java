@@ -10,17 +10,33 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements MainActivityFragment.CustomOnClickListener {
+
+    public static MovieDBManager movieDBManager;
+    public static  String APIKEY="";
+
+    public enum Sort {
+        Popularity,
+        Rating,
+        Favorite
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        movieDBManager = new MovieDBManager( this, "movie.db", null, 1);
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+
         setSupportActionBar(toolbar);
 
 //        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -31,6 +47,8 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
 //                        .setAction("Action", null).show();
 //            }
 //        });
+
+
     }
 
     @Override
@@ -48,19 +66,38 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        MainActivityFragment mainFragment = (MainActivityFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_main);
 
-        if( id == R.id.sort_by_popularity) {
+        if( id == R.id.shareVideo) {
+            String shareBody = "Here is the share content body";
+            Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND);
+            sharingIntent.setType("text/plain");
+            sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Subject Here");
+            sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareBody);
+            startActivity(Intent.createChooser(sharingIntent, getResources().getString(R.string.shareVideo)));
+        } else {
+            MainActivityFragment mainFragment = (MainActivityFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+            Sort sortType = Sort.Favorite;
+            switch (id) {
+                case R.id.sort_by_favorite:
+                    sortType = Sort.Favorite;
+                    break;
+                case R.id.sort_by_popularity:
+                    sortType = Sort.Popularity;
+                    break;
+                case R.id.sort_by_rating:
+                    sortType = Sort.Rating;
+                    break;
+            }
+
+            item.setChecked(true);
+
+
+            mainFragment.updateSortMode(sortType);
         }
-        else if( id == R.id.sort_by_rating) {
-
-        }
-
-        mainFragment.updateSortMode( id);
-
 
         return super.onOptionsItemSelected(item);
     }
+
     @Override
     public void onClicked( Movie movie) {
         DetailFragment detailFragment = (DetailFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_detail);
@@ -74,4 +111,10 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
             detailFragment.update( movie);
         }
     }
+
+    @Override
+    public ArrayList<Movie> getFavoriteMovies() {
+        return movieDBManager.selectAll();
+    }
+
 }

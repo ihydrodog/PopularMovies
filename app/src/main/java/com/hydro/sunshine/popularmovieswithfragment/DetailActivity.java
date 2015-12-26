@@ -1,6 +1,8 @@
 package com.hydro.sunshine.popularmovieswithfragment;
 
 import android.app.ActionBar;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;

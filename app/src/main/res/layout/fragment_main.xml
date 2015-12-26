@@ -12,6 +12,6 @@
         android:id="@+id/gridView"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:numColumns="2" />
+        android:numColumns="auto_fit" />
 
 </RelativeLayout>

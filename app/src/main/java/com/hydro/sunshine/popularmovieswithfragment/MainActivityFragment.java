@@ -44,158 +44,9 @@ public class MainActivityFragment extends Fragment {
 
 
 
-
-
-
-    public class FetchTask extends AsyncTask<Integer, Void, List<Movie>> {
-
-        /* The date/time conversion code is going to be moved outside the asynctask later,
-        * so for convenience we're breaking it out into its own method now.
-        */
-
-
-        /**
-         * Take the String representing the complete forecast in JSON Format and
-         * pull out the data we need to construct the Strings needed for the wireframes.
-         *
-         * Fortunately parsing is easy:  constructor takes the JSON string and converts it
-         * into an Object hierarchy for us.
-         */
-        private List<Movie> getMoviesFromJson(String jsonStr)
-                throws JSONException {
-
-            // These are the names of the JSON objects that need to be extracted.
-            final String OWM_LIST = "list";
-            final String OWM_WEATHER = "weather";
-            final String OWM_TEMPERATURE = "temp";
-            final String OWM_MAX = "max";
-            final String OWM_MIN = "min";
-            final String OWM_DESCRIPTION = "main";
-
-            JSONObject resultJson = new JSONObject(jsonStr);
-            JSONArray results = resultJson.getJSONArray("results");
-
-            List<Movie> movies = new ArrayList<>();
-
-            for( int i = 0; i < results.length(); i++) {
-
-                JSONObject movieJson = results.getJSONObject( i);
-
-                Movie movie = new Movie(movieJson);
-
-                movies.add( movie);
-            }
-            return movies;
-
-        }
-
-        @Override
-        protected List<Movie> doInBackground(Integer... params) {
-
-            // These two need to be declared outside the try/catch
-            // so that they can be closed in the finally block.
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
-
-
-            Integer sortMode = params[0];
-
-            // Will contain the raw JSON response as a string.
-            String jsonStr = null;
-
-            try {
-                // Construct the URL for the OpenWeatherMap query
-                // Possible parameters are avaiable at OWM's forecast API page, at
-                // http://openweathermap.org/API#forecast
-
-                int numDays = 7;
-                String sortBy = "popularity.desc";
-                if( sortMode == R.id.sort_by_rating)
-                    sortBy = "vote_average.desc";
-                else if( sortMode == R.id.sort_by_popularity) {
-                }
-
-                Uri.Builder builder = new Uri.Builder();
-                builder.scheme("http")
-                        .authority("api.themoviedb.org")
-                        .appendPath("3")
-                        .appendPath("discover")
-                        .appendPath("movie")
-                        .appendQueryParameter( "sort_by", sortBy)
-                        .appendQueryParameter("api_key", "APIKEY");
-
-
-                URL url = new URL( builder.build().toString());
-
-                // Create the request to OpenWeatherMap, and open the connection
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-
-                // Read the input stream into a String
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Nothing to do.
-                    return null;
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
-                    buffer.append(line + "\n");
-                }
-
-                if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    return null;
-                }
-                jsonStr = buffer.toString();
-                Log.v(LOG_TAG, jsonStr);
-                try {
-                    return getMoviesFromJson(jsonStr);
-                } catch ( JSONException e) {
-
-                    return null;
-                }
-
-            } catch (IOException e) {
-                Log.e("PlaceholderFragment", "Error ", e);
-                // If the code didn't successfully get the weather data, there's no point in attemping
-                // to parse it.
-                return null;
-            } finally{
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                        Log.e("PlaceholderFragment", "Error closing stream", e);
-                    }
-                }
-            }
-
-        }
-
-        @Override
-        protected void onPostExecute(List<Movie> results) {
-            if( results != null) {
-
-
-                m_arrayAdapter.clear();
-                m_arrayAdapter.addAll(results);
-            }
-        }
-    }
-
     class MovieAdapter extends ArrayAdapter<Movie> {
 
-        public MovieAdapter( Context context, int viewResourceId, ArrayList<Movie> list) {
+        public MovieAdapter( Context context, int viewResourceId, List<Movie> list) {
             super( context, viewResourceId, list);
         }
 
@@ -219,7 +70,11 @@ public class MainActivityFragment extends Fragment {
                 // http://api.themoviedb.org/3/configuration?api_key=APIKEY
 
 
-                Picasso.with(getContext()).load( m.getFullPosterPath()).into(iv);
+                Picasso.with(getContext())
+                        .load(m.getFullPosterPath())
+                        .placeholder(android.R.drawable.ic_dialog_alert)
+                        .error(android.R.drawable.ic_dialog_alert)
+                        .into(iv);
             }
 
 //            Log.d( LOG_TAG, m.original_title);
@@ -228,71 +83,129 @@ public class MainActivityFragment extends Fragment {
         }
     }
 
-
-    MovieAdapter m_arrayAdapter;
-
-
-    private CustomOnClickListener customListener;
+    private CustomOnClickListener m_customListener;
     public interface CustomOnClickListener{
         public void onClicked(Movie movie);
-
+        public List<Movie> getFavoriteMovies();
     }
-    // Activity 로 데이터를 전달할 커스텀 리스너를 연결
+
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        customListener = (CustomOnClickListener)context;
+        m_customListener = (CustomOnClickListener)context;
     }
 
     public MainActivityFragment() {
     }
-    GridView m_gridView;
+
+    static private String MOVIE_ARRAY = "movie_array";
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelableArrayList(MOVIE_ARRAY, m_movieList);
+    }
+
+    ArrayList<Movie> m_movieList = new ArrayList<Movie>();
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-
+        if( savedInstanceState != null) {
+            m_movieList = savedInstanceState.getParcelableArrayList( MOVIE_ARRAY);
+        }
 
 
         View view = inflater.inflate(R.layout.fragment_main, container, false);
 
-        Activity activity = getActivity();
-
-        m_gridView = (GridView) view.findViewById(R.id.gridView);
-
-        ArrayList<Movie> list = new ArrayList<Movie>();
-
-//             list.add( new Movie( "test", "/uXZYawqUsChGSj54wcuBtEdUJbh.jpg"));
+        updateSortMode(MainActivity.Sort.Popularity);
 
 
-        m_arrayAdapter = new MovieAdapter( getContext(), R.layout.grid_view_item, list);
-
-
-
-        m_gridView.setAdapter(m_arrayAdapter);
-
-        FetchTask fetchTask = new FetchTask();
-        fetchTask.execute( R.id.sort_by_popularity);
-
-        m_gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                                            @Override
-                                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                                                Movie movie = m_arrayAdapter.getItem(position);
-
-                                                customListener.onClicked( movie);
-//                                                Intent detailIntent = new Intent(getApplicationContext(), DetailActivity.class).putExtra(Intent.EXTRA_TEXT, movie.toString());
-//
-//                                                startActivity(detailIntent);
-                                            }
-                                        }
-        );
 
         return view;
     }
 
-    public void updateSortMode( int sortMode) {
-        FetchTask fetchTask = new FetchTask();
-        fetchTask.execute( sortMode);
+    void updateGridView( List<Movie> list) {
+        GridView gridView = (GridView) getView().findViewById(R.id.gridView);
+
+        MovieAdapter adapter = new MovieAdapter( getContext(), R.layout.grid_view_item, list);
+
+        gridView.setAdapter(adapter);
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Movie movie = (Movie) parent.getAdapter().getItem(position);
+
+                m_customListener.onClicked( movie);
+
+            }
+        });
+    }
+
+    public void updateSortMode( MainActivity.Sort sortMode) {
+//        FetchTask fetchTask = new FetchTask( m_arrayAdapter);
+//
+//        m_arrayAdapter.clear();
+//        if( sortMode == MainActivity.Sort.Favorite)
+//            m_arrayAdapter.addAll(m_customListener.getFavoriteMovies());
+//
+//        fetchTask.execute( sortMode);
+
+        if( sortMode == MainActivity.Sort.Favorite) {
+            updateGridView(m_customListener.getFavoriteMovies());
+        }
+        else {
+            String sortBy = "popularity.desc";
+            if (sortMode == MainActivity.Sort.Rating)
+                sortBy = "vote_average.desc";
+
+            Uri.Builder builder = new Uri.Builder();
+            builder.scheme("http")
+                    .authority("api.themoviedb.org")
+                    .appendPath("3")
+                    .appendPath("discover")
+                    .appendPath("movie")
+                    .appendQueryParameter("sort_by", sortBy)
+                    .appendQueryParameter("api_key", MainActivity.APIKEY);
+
+
+            FetchURL fetch = new FetchURL(new FetchURL.Callback() {
+                @Override
+                public void callback(String response) {
+
+                    try {
+
+                        m_movieList.clear();
+
+                        JSONObject resultJson = new JSONObject(response);
+                        JSONArray results = resultJson.getJSONArray("results");
+
+
+                        for (int i = 0; i < results.length(); i++) {
+
+                            JSONObject movieJson = results.getJSONObject(i);
+
+                            Movie movie = new Movie(movieJson);
+
+                            if( MainActivity.movieDBManager.select( movie).size() > 0)
+                                movie.favorite = 1;
+
+                            m_movieList.add(movie);
+                        }
+
+
+                        updateGridView( m_movieList);
+
+                    } catch ( JSONException e) {
+                        return;
+                    }
+                }
+            });
+            fetch.execute(builder.toString());
+        }
+
+
 
     }
 }

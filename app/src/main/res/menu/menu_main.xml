@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
 
 
-    <item android:id="@+id/sort_by_popularity" android:title="@string/sortByPopularity"/>
-    <item android:id="@+id/sort_by_rating" android:title="@string/sortByRating"/>
+    <group android:checkableBehavior="single">
+        <item android:checked="true" android:id="@+id/sort_by_popularity" android:title="@string/sortByPopularity"/>
+        <item android:id="@+id/sort_by_rating" android:title="@string/sortByRating"/>
+        <item android:id="@+id/sort_by_favorite" android:title="@string/sortByFavorite"/>
+    </group>
+    <item android:id="@+id/shareVideo" android:title="@string/shareVideo"/>
+
 </menu>

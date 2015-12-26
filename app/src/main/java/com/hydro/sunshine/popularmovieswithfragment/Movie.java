@@ -1,5 +1,6 @@
 package com.hydro.sunshine.popularmovieswithfragment;
 
+import android.database.Cursor;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -15,6 +16,7 @@ public class Movie implements Parcelable {
             release_date = obj.getString("release_date");
             vote_average = obj.getString("vote_average");
             overview = obj.getString("overview");
+            id = obj.getString("id");
 
         } catch ( JSONException e) {
             e.printStackTrace();
@@ -35,6 +37,8 @@ public class Movie implements Parcelable {
         release_date = src.readString();
         vote_average = src.readString();
         overview = src.readString();
+        id = src.readString();
+        favorite = src.readInt();
 
     }
 
@@ -43,10 +47,23 @@ public class Movie implements Parcelable {
     public String release_date;
     public String vote_average;
     public String overview;
+    public String id;
+
+    public int favorite;
 
     public Movie(String test, String s) {
         original_title =test;
         poster_path = s;
+    }
+
+    public Movie( Cursor c) {
+        id = c.getString(1);
+        original_title = c.getString(2);
+        poster_path = c.getString(3);
+        release_date = c.getString(4);
+        vote_average = c.getString(5);
+        overview = c.getString(6);
+        favorite = c.getInt(7);
     }
 
     public String getFullPosterPath() {
@@ -66,6 +83,8 @@ public class Movie implements Parcelable {
         dest.writeString( release_date);
         dest.writeString( vote_average);
         dest.writeString( overview);
+        dest.writeString( id);
+        dest.writeInt( favorite);
     }
 
     public static final Creator<Movie> CREATOR

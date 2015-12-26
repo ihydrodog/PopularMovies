@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+    <string-array name="sort_array">
+        <item/>
+        <item android:id="@+id/sort_by_popularity" android:title="@string/sortByPopularity"/>
+        <item android:id="@+id/sort_by_rating" android:title="@string/sortByRating"/>
+        <item android:id="@+id/sort_by_favorite" android:title="@string/sortByFavorite"/>
+    </string-array>
+</resources>
+
+
