@@ -40,6 +40,24 @@ public class DetailFragment extends Fragment {
         // Required empty public constructor
     }
 
+    static private String MOVIE = "movie";
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if( m_movie != null)
+            outState.putParcelable(MOVIE, m_movie);
+    }
+
+    @Override
+    public void onViewStateRestored(Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if( savedInstanceState != null) {
+            m_movie = savedInstanceState.getParcelable(MOVIE);
+            update( m_movie);
+        }
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -107,6 +125,17 @@ public class DetailFragment extends Fragment {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+        }
+
+        public String getUrl() {
+            if( site.equals( "YouTube")) {
+
+                String videoUrl = String.format("http://www.youtube.com/watch?v=%s", key);
+                return videoUrl;
+            }
+            else
+                return null;
+
         }
 
         String id;
@@ -185,12 +214,16 @@ public class DetailFragment extends Fragment {
     public void update( Movie movie) {
         m_movie = movie;
 
-        TextView title = (TextView)getView().findViewById( R.id.detail_title);
-        TextView releaseDate = (TextView)getView().findViewById( R.id.detail_release_date);
-        TextView averageRating = (TextView)getView().findViewById( R.id.detail_average_rating);
-        TextView overview = (TextView)getView().findViewById( R.id.detail_overview);
-        ImageView poster = (ImageView)getView().findViewById( R.id.detail_poster);
-        ToggleButton favoriteButton = (ToggleButton)getView().findViewById( R.id.favoriteButton);
+        View view = getView();
+        if( view == null || m_movie == null)
+            return;
+
+        TextView title = (TextView)view.findViewById(R.id.detail_title);
+        TextView releaseDate = (TextView)view.findViewById(R.id.detail_release_date);
+        TextView averageRating = (TextView)view.findViewById(R.id.detail_average_rating);
+        TextView overview = (TextView)view.findViewById(R.id.detail_overview);
+        ImageView poster = (ImageView)view.findViewById(R.id.detail_poster);
+        ToggleButton favoriteButton = (ToggleButton)view.findViewById(R.id.favoriteButton);
 
 
         Picasso.with(getContext()).load( movie.getFullPosterPath()).into(poster);
@@ -246,17 +279,15 @@ public class DetailFragment extends Fragment {
                                                             MovieVideo movie = (MovieVideo) parent.getAdapter().getItem(position);
 
                                                             Log.d( movie.site, movie.key);
-
-                                                            if( movie.site.equals( "YouTube")) {
-                                                                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.youtube.com/watch?v=" + movie.key)));
-
-
-                                                            }
-
-
+                                                            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(movie.getUrl())));
                                                         }
                                                     }
                     );
+
+                    // update for sharing
+                    if( movies.size() > 0) {
+
+                    }
 
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -299,9 +330,12 @@ public class DetailFragment extends Fragment {
                         movies.add( movie);
                     }
 
-                    ListView listView = (ListView) getView().findViewById(R.id.gridReview);
+                    View view = getView();
+                    if( view != null) {
+                        ListView listView = (ListView) view.findViewById(R.id.gridReview);
 
-                    listView.setAdapter(new MovieReviewAdapter( getActivity(), R.layout.grid_review, movies));
+                        listView.setAdapter(new MovieReviewAdapter(getActivity(), R.layout.grid_review, movies));
+                    }
 
                 } catch (JSONException e) {
                     e.printStackTrace();

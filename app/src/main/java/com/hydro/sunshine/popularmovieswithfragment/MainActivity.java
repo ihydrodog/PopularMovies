@@ -22,11 +22,11 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
     public static MovieDBManager movieDBManager;
     public static  String APIKEY="";
 
-    public enum Sort {
-        Popularity,
-        Rating,
-        Favorite
-    }
+//    public enum Sort {
+//        Popularity,
+//        Rating,
+//        Favorite
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +60,15 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         return true;
     }
 
+    public void shareVideo() {
+        String shareBody = "Here is the share content body";
+        Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND);
+        sharingIntent.setType("text/plain");
+        sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Subject Here");
+        sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareBody);
+        startActivity(Intent.createChooser(sharingIntent, getResources().getString(R.string.shareVideo)));
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -67,32 +76,12 @@ public class MainActivity extends AppCompatActivity implements MainActivityFragm
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        if( id == R.id.shareVideo) {
-            String shareBody = "Here is the share content body";
-            Intent sharingIntent = new Intent(android.content.Intent.ACTION_SEND);
-            sharingIntent.setType("text/plain");
-            sharingIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Subject Here");
-            sharingIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareBody);
-            startActivity(Intent.createChooser(sharingIntent, getResources().getString(R.string.shareVideo)));
-        } else {
+        if(id == R.id.sort_by_rating || id == R.id.sort_by_popularity || id == R.id.sort_by_favorite ) {
             MainActivityFragment mainFragment = (MainActivityFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_main);
-            Sort sortType = Sort.Favorite;
-            switch (id) {
-                case R.id.sort_by_favorite:
-                    sortType = Sort.Favorite;
-                    break;
-                case R.id.sort_by_popularity:
-                    sortType = Sort.Popularity;
-                    break;
-                case R.id.sort_by_rating:
-                    sortType = Sort.Rating;
-                    break;
-            }
 
             item.setChecked(true);
 
-
-            mainFragment.updateSortMode(sortType);
+            mainFragment.updateSortMode(id);
         }
 
         return super.onOptionsItemSelected(item);

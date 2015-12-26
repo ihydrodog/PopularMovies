@@ -99,27 +99,33 @@ public class MainActivityFragment extends Fragment {
     }
 
     static private String MOVIE_ARRAY = "movie_array";
+    static private String SORT_MODE = "sort_mode";
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putParcelableArrayList(MOVIE_ARRAY, m_movieList);
+        outState.putInt(SORT_MODE, m_sortMode);
     }
 
     ArrayList<Movie> m_movieList = new ArrayList<Movie>();
+    @Override
+    public void onViewStateRestored(Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if( savedInstanceState != null) {
+            m_movieList = savedInstanceState.getParcelableArrayList( MOVIE_ARRAY);
+        }
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
         if( savedInstanceState != null) {
-            m_movieList = savedInstanceState.getParcelableArrayList( MOVIE_ARRAY);
+            m_sortMode = savedInstanceState.getInt(SORT_MODE);
         }
-
-
         View view = inflater.inflate(R.layout.fragment_main, container, false);
 
-        updateSortMode(MainActivity.Sort.Popularity);
+        updateSortMode( m_sortMode);
 
 
 
@@ -127,7 +133,12 @@ public class MainActivityFragment extends Fragment {
     }
 
     void updateGridView( List<Movie> list) {
-        GridView gridView = (GridView) getView().findViewById(R.id.gridView);
+        View view = getView();
+
+        if( view == null)
+            return;
+
+        GridView gridView = (GridView) view.findViewById(R.id.gridView);
 
         MovieAdapter adapter = new MovieAdapter( getContext(), R.layout.grid_view_item, list);
 
@@ -143,7 +154,11 @@ public class MainActivityFragment extends Fragment {
         });
     }
 
-    public void updateSortMode( MainActivity.Sort sortMode) {
+    int m_sortMode;
+
+    public void updateSortMode( int sortMode) {
+
+        m_sortMode = sortMode;
 //        FetchTask fetchTask = new FetchTask( m_arrayAdapter);
 //
 //        m_arrayAdapter.clear();
@@ -152,12 +167,12 @@ public class MainActivityFragment extends Fragment {
 //
 //        fetchTask.execute( sortMode);
 
-        if( sortMode == MainActivity.Sort.Favorite) {
+        if( sortMode == R.id.sort_by_favorite) {
             updateGridView(m_customListener.getFavoriteMovies());
         }
         else {
             String sortBy = "popularity.desc";
-            if (sortMode == MainActivity.Sort.Rating)
+            if (sortMode == R.id.sort_by_rating)
                 sortBy = "vote_average.desc";
 
             Uri.Builder builder = new Uri.Builder();
@@ -176,24 +191,26 @@ public class MainActivityFragment extends Fragment {
 
                     try {
 
-                        m_movieList.clear();
+                        if( response != null) {
 
-                        JSONObject resultJson = new JSONObject(response);
-                        JSONArray results = resultJson.getJSONArray("results");
+                            m_movieList.clear();
+
+                            JSONObject resultJson = new JSONObject(response);
+                            JSONArray results = resultJson.getJSONArray("results");
 
 
-                        for (int i = 0; i < results.length(); i++) {
+                            for (int i = 0; i < results.length(); i++) {
 
-                            JSONObject movieJson = results.getJSONObject(i);
+                                JSONObject movieJson = results.getJSONObject(i);
 
-                            Movie movie = new Movie(movieJson);
+                                Movie movie = new Movie(movieJson);
 
-                            if( MainActivity.movieDBManager.select( movie).size() > 0)
-                                movie.favorite = 1;
+                                if (MainActivity.movieDBManager.select(movie).size() > 0)
+                                    movie.favorite = 1;
 
-                            m_movieList.add(movie);
+                                m_movieList.add(movie);
+                            }
                         }
-
 
                         updateGridView( m_movieList);
 
